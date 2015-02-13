@@ -20,7 +20,10 @@ Gem::Specification.new do |s|
   # Gem dependencies
   s.add_runtime_dependency 'logstash', '>= 1.4.0', '< 2.0.0'
   s.add_runtime_dependency 'logstash-codec-plain'
+  s.add_runtime_dependency 'sequel'
+
   s.add_development_dependency 'logstash-devutils'
-  s.add_development_dependency 'jdbc-postgres'
+  s.add_development_dependency 'timecop'
   s.add_development_dependency 'rufus-scheduler'
+  s.add_development_dependency 'jdbc-derby'
 end
