@@ -3,6 +3,7 @@ require "logstash/inputs/jdbc"
 require "jdbc/derby"
 require "timecop"
 
+
 describe "jdbc" do
   let(:mixin_settings) { {"jdbc_driver_class" => "org.apache.derby.jdbc.EmbeddedDriver", "jdbc_connection_string" => "jdbc:derby:memory:testdb;create=true"} }
 
@@ -44,5 +45,40 @@ describe "jdbc" do
     insist { q.size } == 2
     plugin.teardown
     Timecop.return
+  end
+
+  it "should successfully iterate table with respect to field values" do
+    require "sequel"
+    require "sequel/adapters/jdbc"
+    Jdbc::Derby.load_driver
+    @database = Sequel.connect(mixin_settings['jdbc_connection_string'], :user=> nil, :password=> nil)
+    @database.create_table :test_table do
+      DateTime :created_at
+      Integer :num
+    end
+    test_table = @database[:test_table]
+    settings = {"statement" => "SELECT num, created_at FROM test_table WHERE created_at > :sql_last_start"}
+    plugin = LogStash::Inputs::Jdbc.new(mixin_settings.merge(settings))
+    plugin.register
+    q = Queue.new
+
+    nums = [10, 20, 30, 40, 50]
+    plugin.run(q)
+    test_table.insert(:num => nums[0], :created_at => Time.now.utc)
+    test_table.insert(:num => nums[1], :created_at => Time.now.utc)
+    plugin.run(q)
+    test_table.insert(:num => nums[2], :created_at => Time.now.utc)
+    test_table.insert(:num => nums[3], :created_at => Time.now.utc)
+    test_table.insert(:num => nums[4], :created_at => Time.now.utc)
+    plugin.run(q)
+
+    actual_sum = 0
+    until q.empty? do
+      actual_sum += q.pop['num']
+    end
+
+    plugin.teardown
+
+    insist { actual_sum } == nums.inject{|sum,x| sum + x }
   end
 end
