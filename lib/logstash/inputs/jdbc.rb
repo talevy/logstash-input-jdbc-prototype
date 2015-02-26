@@ -62,7 +62,7 @@ class LogStash::Inputs::Jdbc < LogStash::Inputs::Base
   public
 
   def register
-    require "rufus-scheduler"
+    require "rufus/scheduler"
     prepare_jdbc_connection()
   end # def register
 
@@ -72,6 +72,7 @@ class LogStash::Inputs::Jdbc < LogStash::Inputs::Base
       @scheduler.cron @schedule do
         execute_query(queue)
       end
+      @scheduler.join
     else
       execute_query(queue)
     end
@@ -79,7 +80,7 @@ class LogStash::Inputs::Jdbc < LogStash::Inputs::Base
 
   def teardown
     if @scheduler
-      @scheduler.shutdown
+      @scheduler.stop
     end
     close_jdbc_connection()
   end # def teardown
